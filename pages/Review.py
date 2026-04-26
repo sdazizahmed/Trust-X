@@ -18,7 +18,7 @@ st.set_page_config(page_title="TRUST-X | Review", page_icon="🫁", layout="wide
 
 # ── Disclaimer ───────────────────────────────────────────────────────────────
 st.warning(
-    "⚠ **Research Prototype** — Not validated for clinical use. "
+    "⚠ **Academic Prototype** — Not validated for clinical use. "
     "Predictions must not be used for diagnosis."
 )
 
