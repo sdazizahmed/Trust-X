@@ -19,7 +19,7 @@ st.set_page_config(
 # ── Global disclaimer banner — shown on every page ──────────────────────────
 def disclaimer_banner():
     st.warning(
-        "⚠ **Research Prototype** — TRUST-X is an academic system built on "
+        "⚠ **Academic Prototype** — TRUST-X is an academic system built on "
         "NLP-labelled data. It is **not validated for clinical use**. "
         "Predictions must not be used for diagnosis or treatment decisions."
     )
