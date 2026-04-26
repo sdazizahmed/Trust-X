@@ -102,7 +102,7 @@ with tabs[1]:
 with tabs[2]:
     st.error(
         "### ⚠ Important Caveats\n\n"
-        "TRUST-X is a **research prototype** built on academic data. It must not be "
+        "TRUST-X is a **Academic prototype** built on academic data. It must not be "
         "used for clinical diagnosis or treatment decisions."
     )
 
