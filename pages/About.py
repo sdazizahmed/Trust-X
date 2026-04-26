@@ -7,7 +7,7 @@ import streamlit as st
 st.set_page_config(page_title="TRUST-X | About", page_icon="🫁", layout="wide")
 
 st.warning(
-    "⚠ **Research Prototype** — Not validated for clinical use. "
+    "⚠ **Academic Prototype** — Not validated for clinical use. "
     "Predictions must not be used for diagnosis."
 )
 
