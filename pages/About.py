@@ -168,4 +168,4 @@ with tabs[3]:
     )
 
 st.markdown("---")
-st.caption("TRUST-X — Academic project. Source code & model available for research use.")
+st.caption("TRUST-X — Academic project. Source code & model available for academic use.")
