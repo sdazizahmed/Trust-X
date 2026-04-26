@@ -17,7 +17,7 @@ st.set_page_config(page_title="TRUST-X | Triage Queue", page_icon="🫁", layout
 
 # ── Disclaimer banner ────────────────────────────────────────────────────────
 st.warning(
-    "⚠ **Research Prototype** — Not validated for clinical use. "
+    "⚠ **Academic Prototype** — Not validated for clinical use. "
     "Predictions must not be used for diagnosis."
 )
 
