@@ -142,7 +142,7 @@ if queue:
               <th>Preview</th>
               <th>Score</th>
               <th>Top Finding</th>
-              <th>Confidence</th>
+              <th>Top Prob</th>
               <th>Filename</th>
             </tr>
           </thead>
