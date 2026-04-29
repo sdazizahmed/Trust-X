@@ -1,90 +1,83 @@
-# TRUST-X Streamlit App
+# TRUST-X: Chest X-Ray Triage System
 
-Multi-page Streamlit dashboard for the TRUST-X chest X-ray triage system.
+TRUST-X is a clinical decision support tool built on top of a fine-tuned DenseNet-121 model trained on the NIH ChestX-ray14 dataset (~112K images, 14 pathology labels). The goal is to help radiologists prioritize their worklist — not replace their judgment.
 
-## Structure
+The app has three stages that mirror a real clinical workflow:
 
-```
-trustx_streamlit/
-├── app.py                       # Landing page (model loader)
-├── trustx_core.py               # Importable model + inference functions
-├── requirements.txt             # For Streamlit Cloud
-├── .streamlit/config.toml       # Theme
-├── pages/
-│   ├── 1_📋_Triage_Queue.py     # Stage 1 — batch intake & ranking
-│   ├── 2_🔍_Review.py           # Stage 2 — radiologist drill-down
-│   └── 3_ℹ️_About.py            # Methodology + references
-└── [model files — see below]
-```
+**1. Triage Queue** — Upload a batch of X-rays. The model scores each image for all 14 pathologies and ranks patients by severity using a weighted triage score, so the most urgent cases surface to the top automatically.
 
-## Required model files (not in this repo)
+**2. Review** — Drill into any individual patient. This page runs the full analysis: per-label predictions with F1-optimized thresholds, GradCAM heatmaps showing which regions drove each prediction, and MC Dropout uncertainty estimation (20 forward passes) that outputs a HIGH / MEDIUM / LOW confidence rating per finding.
 
-Place these in the app directory alongside `app.py`:
+**3. About** — Model card covering architecture choices, training methodology, evaluation results (test AUC 0.8311), known limitations, and references.
 
-- `TRUSTX_densenet121_v2_320px_AFL.pth` — trained checkpoint (~30 MB)
-- `val_logits.npy`  — validation logits for calibration
-- `val_labels.npy`  — validation labels for calibration
+---
 
-These come from running the training notebook.
+## Model
 
-## Running locally
+The backbone is DenseNet-121 trained in two phases: feature extraction on ImageNet weights, then full fine-tuning with asymmetric focal loss to handle the severe class imbalance in ChestX-ray14 (some pathologies appear in fewer than 0.5% of images). Images are resized to 320px for inference.
+
+Per-label classification thresholds were tuned on a held-out validation set rather than using a fixed 0.5 cutoff — this meaningfully improves recall on rare classes.
+
+The train/val/test split is done at the patient level (no patient appears in more than one split), which avoids the data leakage that affects the original NIH-provided split.
+
+---
+
+## Setup
+
+You'll need three files that aren't in this repo — place them in the root directory alongside `app.py`:
+
+- `TRUSTX_densenet121_v2_320px_AFL.pth` — the trained model checkpoint
+- `val_logits.npy` — validation logits used for threshold calibration
+- `val_labels.npy` — corresponding validation labels
+
+These are produced by the training notebook.
 
 ```bash
-cd trustx_streamlit
 pip install -r requirements.txt
 streamlit run app.py
 ```
 
-App will open at http://localhost:8501
+---
 
-## Deploying to Streamlit Community Cloud
+## Deploying
 
-1. Push to GitHub (public repo)
-2. Go to https://share.streamlit.io
-3. Sign in with GitHub, click "New app"
-4. Point to the repo and set `app.py` as the entry point
-5. Deploy
+The app runs on CPU. DenseNet-121 at 320px takes roughly 1–2 seconds per image for a standard prediction; MC Dropout (20 passes) takes 20–40 seconds and shows a spinner. Streamlit Community Cloud's 1 GB RAM limit is sufficient.
 
-### ⚠ The checkpoint file is too large for plain Git
+The model is cached after the first load via `@st.cache_resource` — subsequent interactions within a session are fast.
 
-The `.pth` file is ~30 MB. Options:
+### Getting the checkpoint onto Streamlit Cloud
 
-**Option A — Git LFS** (easiest if you already know it)
+The `.pth` file is ~30 MB — too large for a plain Git push. Two options:
+
+**Git LFS**
 ```bash
 git lfs install
 git lfs track "*.pth"
 git add .gitattributes TRUSTX_densenet121_v2_320px_AFL.pth
-git commit -m "Add model with LFS"
+git commit -m "Add model checkpoint"
 ```
 
-**Option B — Hugging Face Hub** (cleaner, what I'd recommend)
-1. Create a free HF account → create a new Model repo
-2. Upload the `.pth` to that repo
-3. In `app.py`'s `get_model()`, add a download step before `load_trustx_model`:
-   ```python
-   from huggingface_hub import hf_hub_download
-   ckpt_path = hf_hub_download(repo_id="your-username/trustx", 
-                               filename="TRUSTX_densenet121_v2_320px_AFL.pth")
-   ```
-4. Add `huggingface_hub` to `requirements.txt`
+**Hugging Face Hub** (recommended — keeps the repo clean)
 
-The `.npy` files are small (<10 MB), they can stay in the repo directly.
+Upload the `.pth` to a free HF model repo, then add a download step at the top of `get_model()` in `app.py`:
 
-## Streamlit Cloud notes
+```python
+from huggingface_hub import hf_hub_download
+ckpt_path = hf_hub_download(
+    repo_id="your-username/trustx",
+    filename="TRUSTX_densenet121_v2_320px_AFL.pth"
+)
+```
 
-- App runs on **CPU only** — DenseNet-121 inference at 320px takes ~1–2 seconds 
-  per image. MC Dropout with N=20 passes takes ~20–40 seconds. A spinner is shown.
-- 1 GB RAM limit — plenty of headroom for this model.
-- First load of the app downloads/builds the model and is cached by 
-  `@st.cache_resource`. Subsequent user interactions are fast.
+Add `huggingface_hub` to `requirements.txt`. The `.npy` files are small enough to commit directly.
 
-## Demo workflow
+---
 
-1. **Home** — confirm model loaded (should show test AUC 0.8311)
-2. **📋 Triage Queue** — upload 5–10 X-rays, click "Run Triage", see ranked worklist
-3. **🔍 Review** — select any patient from dropdown, click "Run Full Analysis", 
-   see predictions + GradCAM + MC Dropout uncertainty
-4. **ℹ️ About** — methodology, results table, limitations, references
+## Running a demo
 
-Good demo images are the ones generated by the `demo_images/` script in the 
-training notebook (test-set samples per pathology).
+Good test images are the per-pathology samples exported by the `demo_images/` script in the training notebook (one image per pathology from the held-out test set).
+
+1. Open the app — the home page confirms the model loaded and shows the test AUC.
+2. Go to **Triage Queue**, upload 5–10 X-rays, and hit "Run Triage" to see the ranked worklist.
+3. Pick any patient from **Review**, hit "Run Full Analysis" to see predictions, GradCAM overlays, and uncertainty ratings.
+4. Check **About** for the full methodology writeup.
